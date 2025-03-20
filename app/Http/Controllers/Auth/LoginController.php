@@ -29,18 +29,25 @@ class LoginController extends Controller
         $credentials = $request->validate([
             'phone' => ['required', 'string'],
             'password' => ['required', 'string'],
+            'app_type' => ['required', 'in:driver,rider'], // Ensure app_type is provided
         ]);
-        
     
-        if (!auth()->attempt($credentials)) {
+        if (!auth()->attempt(['phone' => $credentials['phone'], 'password' => $credentials['password']])) {
             return response()->json(['message' => 'Invalid credentials'], 401);
         }
     
         $user = auth()->user();
+    
+        // Check if user is logging into the correct app
+        if ($user->status !== $credentials['app_type']) {
+            return response()->json(['message' => 'Access denied. You are not a ' . $credentials['app_type']], 403);
+        }
+    
         $token = $user->createToken('authToken')->plainTextToken;
     
         return response()->json(['user' => $user, 'token' => $token], 200);
     }
+
 
 
 public function logout(Request $request)
